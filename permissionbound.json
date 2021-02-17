@@ -1,0 +1,318 @@
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ServiceBoundariesAllow",
+            "Effect": "Allow",
+            "Action": [
+                "xray:*",
+                "wellarchitected:*",
+                "wafv2:*",
+                "waf:*",
+                "waf-regional:*",
+                "trustedadvisor:*",
+                "transfer:*",
+                "transcribe:*",
+                "textract:*",
+                "tag:*",
+                "swf:*",
+                "support:*",
+                "sts:*",
+                "storagegateway:*",
+                "states:*",
+                "sso:*",
+                "ssmmessages:*",
+                "ssm:*",
+                "sqs:*",
+                "sns:*",
+                "servicecatalog:*",
+                "secretsmanager:*",
+                "sagemaker:*",
+                "s3:*",
+                "route53:UpdateHostedZoneComment",
+                "route53:List*",
+                "route53:Get*",
+                "route53:ChangeResourceRecordSets",
+                "route53:AssociateVPCWithHostedZone",
+                "rekognition:*",
+                "redshift:*",
+                "rds:*",
+                "rds-data:*",
+                "quicksight:*",
+                "polly:*",
+                "managedblockchain:*",
+                "macie:*",
+                "logs:*",
+                "lex:*",
+                "lambda:*",
+                "kms:*",
+                "kinesisanalytics:*",
+                "kinesis:*",
+                "inspector:*",
+                "iam:UploadServerCertificate",
+                "iam:UpdateServerCertificate",
+                "iam:SimulatePrincipalPolicy",
+                "iam:SimulateCustomPolicy",
+                "iam:PassRole",
+                "iam:List*",
+                "iam:Get*",
+                "iam:Generate*",
+                "health:*",
+                "guardduty:List*",
+                "guardduty:Get*",
+                "glue:*",
+                "glacier:*",
+                "fsx:*",
+                "forecast:*",
+                "firehose:*",
+                "execute-api:*",
+                "events:*",
+                "es:*",
+                "elasticmapreduce:*",
+                "elasticloadbalancing:*",
+                "elasticfilesystem:*",
+                "elasticbeanstalk:*",
+                "elasticache:*",
+                "eks:*",
+                "ecs:*",
+                "ecr:*",
+                "ec2messages:*",
+                "ec2:*",
+                "dynamodb:*",
+                "ds:*",
+                "dms:*",
+                "dax:*",
+                "cur:*",
+                "config:*",
+                "comprehend:*",
+                "cognito-sync:*",
+                "cognito-idp:*",
+                "cognito-identity:*",
+                "codepipeline:*",
+                "codedeploy:*",
+                "codecommit:*",
+                "codebuild:*",
+                "cloudwatch:*",
+                "cloudtrail:LookupEvents",
+                "cloudtrail:GetTrailStatus",
+                "cloudtrail:DescribeTrails",
+                "cloudformation:*",
+                "cloud9:*",
+                "ce:*",
+                "budgets:*",
+                "batch:*",
+                "backup:*",
+                "aws-portal:*",
+                "autoscaling:*",
+                "autoscaling-plans:*",
+                "athena:*",
+                "application-autoscaling:*",
+                "apigateway:*",
+                "acm:*",
+                "account:ListRegions"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "ServiceBoundariesDeny",
+            "Effect": "Deny",
+            "Action": [
+                "s3:PutBucketPublicAccessBlock",
+                "s3:PutAccountPublicAccessBlock",
+                "iam:DeleteRolePermissionsBoundary",
+                "ec2:ReplaceRouteTableAssociation",
+                "ec2:ReplaceRoute",
+                "ec2:ReplaceNetworkAclEntry",
+                "ec2:ReplaceNetworkAclAssociation",
+                "ec2:RejectVpcPeeringConnection",
+                "ec2:ModifyVpcTenancy",
+                "ec2:ModifyVpcPeeringConnectionOptions",
+                "ec2:ModifyVpcAttribute",
+                "ec2:ModifySnapshotAttribute",
+                "ec2:ModifyImageAttribute",
+                "ec2:EnableVpcClassicLinkDnsSupport",
+                "ec2:EnableVpcClassicLink",
+                "ec2:DisassociateVpcCidrBlock",
+                "ec2:DisassociateRouteTable",
+                "ec2:DisableVpcClassicLinkDnsSupport",
+                "ec2:DisableVpcClassicLink",
+                "ec2:DisableVgwRoutePropagation",
+                "ec2:DetachVpnGateway",
+                "ec2:DetachInternetGateway",
+                "ec2:DetachClassicLinkVpc",
+                "ec2:DeleteVpnGateway",
+                "ec2:DeleteVpnConnectionRoute",
+                "ec2:DeleteVpnConnection",
+                "ec2:DeleteVpcPeeringConnection",
+                "ec2:DeleteVpc",
+                "ec2:DeleteRouteTable",
+                "ec2:DeleteRoute",
+                "ec2:DeleteNetworkAclEntry",
+                "ec2:DeleteInternetGateway",
+                "ec2:DeleteDhcpOptions",
+                "ec2:DeleteCustomerGateway",
+                "ec2:CreateVpnGateway",
+                "ec2:CreateVpnConnectionRoute",
+                "ec2:CreateVpnConnection",
+                "ec2:CreateVpcPeeringConnection",
+                "ec2:CreateVpc",
+                "ec2:CreateRouteTable",
+                "ec2:CreateRoute",
+                "ec2:CreateNetworkAclEntry",
+                "ec2:CreateNetworkAcl",
+                "ec2:CreateNatGateway",
+                "ec2:CreateInternetGateway",
+                "ec2:CreateEgressOnlyInternetGateway",
+                "ec2:CreateDhcpOptions",
+                "ec2:CreateDefaultVpc",
+                "ec2:CreateCustomerGateway",
+                "ec2:AttachVpnGateway",
+                "ec2:AttachInternetGateway",
+                "ec2:AttachClassicLinkVpc",
+                "ec2:AssociateVpcCidrBlock",
+                "ec2:AcceptVpcPeeringConnection"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "RestrictEC2AmiOwner",
+            "Effect": "Deny",
+            "Action": [
+                "ec2:RunScheduledInstances",
+                "ec2:RunInstances"
+            ],
+            "Resource": "arn:aws:ec2:*::image/ami-*",
+            "Condition": {
+                "ForAnyValue:StringNotEquals": {
+                    "ec2:Owner": [
+                        "507188648151",
+                        "415754506132"
+                    ]
+                }
+            }
+        },
+        {
+            "Sid": "RestrictEC2MetadataRun",
+            "Effect": "Deny",
+            "Action": "ec2:RunInstances",
+            "Resource": "arn:aws:ec2:*:*:instance/*",
+            "Condition": {
+                "ForAnyValue:StringEquals": {
+                    "ec2:MetadataHttpTokens": "optional"
+                }
+            }
+        },
+        {
+            "Sid": "RestrictEC2Metadata",
+            "Effect": "Deny",
+            "Action": "ec2:ModifyInstanceMetadataOptions",
+            "Resource": "*",
+            "Condition": {
+                "ForAnyValue:StringEquals": {
+                    "ec2:MetadataHttpTokens": "required"
+                }
+            }
+        },
+        {
+            "Sid": "IAMManageRoles",
+            "Effect": "Allow",
+            "Action": [
+                "iam:UpdateRoleDescription",
+                "iam:UpdateRole",
+                "iam:PutRolePolicy",
+                "iam:PutRolePermissionsBoundary",
+                "iam:DetachRolePolicy",
+                "iam:DeleteRolePolicy",
+                "iam:CreateRole",
+                "iam:AttachRolePolicy",
+                "iam:AddRoleToInstanceProfile"
+            ],
+            "Resource": "arn:aws:iam::415754506132:role/devops-*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:PermissionsBoundary": "arn:aws:iam::415754506132:policy/devops-iamp-frs-permissions-boundary"
+                }
+            }
+        },
+        {
+            "Sid": "IAMTagTrustRoles",
+            "Effect": "Allow",
+            "Action": [
+                "iam:UpdateAssumeRolePolicy",
+                "iam:UntagRole",
+                "iam:TagRole",
+                "iam:DeleteRole"
+            ],
+            "Resource": "arn:aws:iam::415754506132:role/devops-*"
+        },
+        {
+            "Sid": "IAMManagePolicies",
+            "Effect": "Allow",
+            "Action": [
+                "iam:SetDefaultPolicyVersion",
+                "iam:DeletePolicyVersion",
+                "iam:DeletePolicy",
+                "iam:CreatePolicyVersion",
+                "iam:CreatePolicy"
+            ],
+            "Resource": "arn:aws:iam::415754506132:policy/devops-*"
+        },
+        {
+            "Sid": "IAMManageInstanceProfiles",
+            "Effect": "Allow",
+            "Action": "iam:*InstanceProfile",
+            "Resource": "arn:aws:iam::415754506132:instance-profile/devops-*"
+        },
+        {
+            "Sid": "RestrictFRSBoundaryPolicyAccess",
+            "Effect": "Deny",
+            "Action": [
+                "iam:SetDefaultPolicyVersion",
+                "iam:DeletePolicyVersion",
+                "iam:DeletePolicy",
+                "iam:CreatePolicyVersion",
+                "iam:CreatePolicy"
+            ],
+            "Resource": [
+                "arn:aws:iam::415754506132:policy/devops-iamp-frs-permissions-boundary-iam-admin-*",
+                "arn:aws:iam::415754506132:policy/devops-iamp-frs-permissions-boundary"
+            ]
+        },
+        {
+            "Sid": "IAMPassRolePolicy",
+            "Effect": "Deny",
+            "Action": "iam:PassRole",
+            "Resource": "arn:aws:iam::415754506132:role/awc-*",
+            "Condition": {
+                "ArnNotEquals": {
+                    "aws:SourceArn": "arn:aws:iam::415754506132:role/awc-n-ny-apps-iamr-ec2-default"
+                }
+            }
+        },
+        {
+            "Sid": "RestrictLambdaAccess",
+            "Effect": "Deny",
+            "Action": "lambda:*",
+            "Resource": "arn:aws:lambda:*:*:function:awc-*"
+        },
+        {
+            "Sid": "RestrictCloudWatchAccess",
+            "Effect": "Deny",
+            "Action": [
+                "logs:PutSubscriptionFilter",
+                "logs:DeleteSubscriptionFilter",
+                "logs:DeleteLogStream",
+                "logs:DeleteLogGroup"
+            ],
+            "Resource": [
+                "arn:aws:logs:::log-group:awc*:log-stream:*",
+                "arn:aws:logs:::log-group:awc*"
+            ]
+        },
+        {
+            "Sid": "RestrictS3Access",
+            "Effect": "Deny",
+            "Action": "s3:*",
+            "Resource": "arn:aws:s3:::awc-*"
+        }
+    ]
+}

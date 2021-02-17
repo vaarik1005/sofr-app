@@ -1,0 +1,10 @@
+{
+	"fileVersion": 1,
+	"projects": [{
+		"buildTool": "terraform",
+		"aws" : { 
+			"id" : "415754506132", 
+			"region" : "us-east-2",
+        }
+	}]
+}

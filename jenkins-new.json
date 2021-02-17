@@ -1,0 +1,23 @@
+{
+"fileVersion": 1,
+"projects": [{
+"buildTool": "terraform",
+"deploy": {
+"commands": [
+"ls ./",
+"mkdir env",
+"cd env",
+"aws sts assume-role --role-arn \"arn:aws:iam::429563846140:role/devops-sts-jenkins-deploy\" --role-session-name AWSCLI-Session > assume-role-output.txt",
+"cat assume-role-output.txt | grep -i AccessKeyID | awk -F':' '{print $2}' | cut -d '\"' -f 2 | awk '{print \"export AWS_ACCESS_KEY_ID=\" $1}' > env.sh",
+"cat assume-role-output.txt | grep -i SecretAccessKey | awk -F':' '{print $2}' | cut -d '\"' -f 2 | awk '{print \"export AWS_SECRET_ACCESS_KEY=\" $1}' >> env.sh",
+"cat assume-role-output.txt | grep -i SessionToken | awk -F':' '{print $2}' | cut -d '\"' -f 2 | awk '{print \"export AWS_SESSION_TOKEN=\" $1}' >> env.sh",
+"source ./env.sh",
+"cd .."
+]
+},
+"aws": {
+"id": "415754506132",
+"region": "us-east-2"
+}
+}]
+}

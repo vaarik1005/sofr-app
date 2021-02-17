@@ -307,7 +307,7 @@ resource "aws_lambda_permission" "ALBNewSubsPerms" {
   principal     = "elasticloadbalancing.amazonaws.com"
 }
 
-resource "aws_lb_target_group" "NewSubsTarget-tf" {
+resource "aws_lb_target_group" "NewSubsTarget" {
   name        = "NewSubmissionsTarget-tf"
   target_type = "lambda"
 
@@ -324,8 +324,8 @@ resource "aws_lb_target_group" "NewSubsTarget-tf" {
   }
 }
 
-resource "aws_lb_target_group_attachment" "NewSubsLambda" {
-  target_group_arn = aws_lb_target_group.NewSubsLambda.arn
+resource "aws_lb_target_group_attachment" "NewSubs" {
+  target_group_arn = aws_lb_target_group.NewSubsTarget.arn
   target_id        = module.NewSubsLambda.this_lambda_function_arn
   depends_on       = [aws_lambda_permission.ALBNewSubsPerms]
 }
@@ -336,7 +336,7 @@ resource "aws_lb_listener_rule" "NewSubsLambda" {
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.NewSubsLambda.arn
+    target_group_arn = aws_lb_target_group.NewSubsTarget.arn
   }
 
   condition {

@@ -1,0 +1,678 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CFT for SPIRE Application Stack.
+Parameters:
+  ApplicationName:
+    Type: String
+    Description: Application Name - Environment
+    Default: ofr-dev
+  ArtifactsBucketName:
+    Type: String
+    Description: Lambda Artifacts S3 Bucket Name
+    Default: frbny-sofr-dev-artifacts
+  ArchivalFolderName:
+    Type: String
+    Description: Repo Files Archival Folder Name
+    Default: processed
+  DeploymentBucketName:
+    Type: String
+    Description: Deployment S3 Bucket Name
+    Default: frbny-deployment-sofr-dev-artifacts
+  SOFRInputFilesBucketName:
+    Type: String
+    Description: Deployment S3 Bucket Name
+    Default: frbny-sofr-dev-input-repo-files
+  SOFROutputFilesBucketName:
+    Type: String
+    Description: Deployment S3 Bucket Name
+    Default: frbny-sofr-dev-output-repo-files    
+  LambdaProcessorLoc:
+    Type: String
+    Description: SOFR File Processor Function file name
+    Default: ofr-fp-aws-poc-1.0.0.jar
+  LambdaNewSubmissionsLoc:
+    Type: String
+    Description: New Submission Listing Function file name
+    Default: ofr-fp-aws-poc-1.0.0.jar
+  LambdaSubmissionIdLoc:
+    Type: String
+    Description: Retrieve One Submission Function file name
+    Default: ofr-fp-aws-poc-1.0.0.jar
+  IntCertArn:
+    Type: String
+    Description: Internal ALB Certificate ARN
+    Default: 'arn:aws:acm:us-east-2:415754506132:certificate/8dc0fe14-e5e4-419f-a8f7-c163fa5413be'
+  SofrEnvironmentName:
+    Type: String
+    Description: 'SOFR Environment: dev/test/demo/qa/prod'
+    AllowedValues:
+      - dev
+      - test
+      - demo
+      - qa
+      - prod
+    Default: dev
+  ServiceMgmtRoleName:
+    Type: String
+    Description: Service Management Role Name
+    Default: awc-ny-iam-role-saml-ServiceMgmtAdmin
+  BoundaryPolicyName:
+    Type: String
+    Description: Service Management Role Name
+    Default: devops-iamp-frs-permissions-boundary
+  DeploymentMode:
+    Type: String
+    Description: Stack Deployment Mode
+    AllowedValues:
+      - main
+      - promote
+    Default: main
+  Tag2ndLevelSupportValue:
+    Type: String
+    Description: 'Value of the Tag: 2nd Level Support'
+    Default: B1-TECS-Application-Delivery-Services
+  TagappCiNameValue:
+    Type: String
+    Description: 'Value of the Tag: Application System CI Name'
+    Default: SOFR-DEV
+  TagCIEnvironmentValue:
+    Type: String
+    Description: 'Value of the Tag: CI Environment'
+    Default: dev
+  TagcreatedDateValue:
+    Type: String
+    Description: 'Value of the Tag: Created Date'
+    Default: '02/09/2021'
+  TagdataClassificationValue:
+    Type: String
+    Description: 'Value of the Tag: Information Classification'
+    Default: NONCONFIDENTIAL
+  TagDeptCodeValue:
+    Type: String
+    Description: 'Value of the Tag: Department Code'
+    Default: 2901
+  TaglobValue:
+    Type: String
+    Description: 'Value of the Tag: Line of Business'
+    Default: GCBSOFR000
+  TagaccountingCodeValue:
+    Type: String
+    Description: 'Value of the Tag: Accounting Code'
+    Default: 'Reserve Banks'
+  TagtaggingVersionValue:
+    Type: String
+    Description: 'Value of the Tag: Tagging Version'
+    Default: 1.0
+Resources:
+  ProcessorRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: devops-processor-lambda-role
+      Description: 'IAM service linked role for Processor Lambdas'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      PermissionsBoundary: !Join 
+        - ''
+        - - 'arn:aws:iam::'
+          - !Ref 'AWS::AccountId'
+          - ':policy/'
+          - !Ref BoundaryPolicyName
+      Tags:
+        - Key: 2nd Level Support
+          Value: !Ref Tag2ndLevelSupportValue
+        - Key: Application System CI Name
+          Value: !Ref TagappCiNameValue
+        - Key: CI Environment
+          Value: !Ref TagCIEnvironmentValue
+        - Key: Created Date
+          Value: !Ref TagcreatedDateValue
+        - Key: Information Classification
+          Value: !Ref TagdataClassificationValue
+        - Key: Department Code
+          Value: !Ref TagDeptCodeValue
+        - Key: Line of Business
+          Value: !Ref TaglobValue
+        - Key: Accounting Code
+          Value: !Ref TagaccountingCodeValue
+        - Key: Tagging Version
+          Value: !Ref TagtaggingVersionValue
+  processorPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    DependsOn:
+      - ProcessorRole
+    Properties:
+      Description: 'Least Privileged Policy for Processor Lambda of SOFR application'
+      ManagedPolicyName: devops-processor-lambda-policy
+      Roles:
+        - !Ref ProcessorRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowKMSUseforS3
+            Effect: Allow
+            Action:
+              - 'kms:Decrypt'
+              - 'kms:Encrypt'
+              - 'kms:GenerateDataKey'
+              - 'kms:ReEncryptTo'
+              - 'kms:GenerateDataKeyWithoutPlaintext'
+              - 'kms:DescribeKey'
+              - 'kms:GenerateDataKeyPairWithoutPlaintext'
+              - 'kms:GenerateDataKeyPair'
+              - 'kms:ReEncryptFrom'
+            Resource: !ImportValue S3-KMS-KEY-ARN
+          - Sid: AllowS3Read
+            Effect: Allow
+            Action:
+              - 's3:GetObject'
+              - 's3:ListBucket'
+            Resource:
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref ArtifactsBucketName
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref SOFRInputFilesBucketName
+                  - /*
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref SOFROutputFilesBucketName
+                  - /*
+          - Sid: AllowS3Write
+            Effect: Allow
+            Action:
+              - 's3:*Object'
+              - 's3:ListBucket'
+            Resource:
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref SOFRInputFilesBucketName
+                  - /*
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref SOFROutputFilesBucketName
+                  - /*
+  QueryRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: devops-query-lambdas-role
+      Description: 'IAM service linked role for Query Lambdas'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      PermissionsBoundary: !Join 
+        - ''
+        - - 'arn:aws:iam::'
+          - !Ref 'AWS::AccountId'
+          - ':policy/'
+          - !Ref BoundaryPolicyName
+      Tags:
+        - Key: 2nd Level Support
+          Value: !Ref Tag2ndLevelSupportValue
+        - Key: Application System CI Name
+          Value: !Ref TagappCiNameValue
+        - Key: CI Environment
+          Value: !Ref TagCIEnvironmentValue
+        - Key: Created Date
+          Value: !Ref TagcreatedDateValue
+        - Key: Information Classification
+          Value: !Ref TagdataClassificationValue
+        - Key: Department Code
+          Value: !Ref TagDeptCodeValue
+        - Key: Line of Business
+          Value: !Ref TaglobValue
+        - Key: Accounting Code
+          Value: !Ref TagaccountingCodeValue
+        - Key: Tagging Version
+          Value: !Ref TagtaggingVersionValue
+  queryPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    DependsOn:
+      - QueryRole
+    Properties:
+      Description: 'Least Privileged Policy for Query Lambdas of SOFR application'
+      ManagedPolicyName: devops-query-lambda-policy
+      Roles:
+        - !Ref QueryRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowS3KMSDecrypt
+            Effect: Allow
+            Action:
+              - 'kms:Decrypt'
+            Resource: !ImportValue S3-KMS-KEY-ARN
+          - Sid: AllowS3Read
+            Effect: Allow
+            Action:
+              - 's3:GetObject'
+              - 's3:ListBucket'
+            Resource:
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref ArtifactsBucketName
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref SOFROutputFilesBucketName
+                  - /*
+  ProcessorLambda:
+    Type: 'AWS::Lambda::Function'
+    DependsOn:
+      - ProcessorRole
+    Properties:
+      Description: SOFR File Processor Lambda Function
+      Role: !GetAtt 
+        - ProcessorRole
+        - Arn
+      Runtime: java8
+      Tags:
+        - Key: 2nd Level Support
+          Value: !Ref Tag2ndLevelSupportValue
+        - Key: Application System CI Name
+          Value: !Ref TagappCiNameValue
+        - Key: CI Environment
+          Value: !Ref TagCIEnvironmentValue
+        - Key: Created Date
+          Value: !Ref TagcreatedDateValue
+        - Key: Information Classification
+          Value: !Ref TagdataClassificationValue
+        - Key: Department Code
+          Value: !Ref TagDeptCodeValue
+        - Key: Line of Business
+          Value: !Ref TaglobValue
+        - Key: Accounting Code
+          Value: !Ref TagaccountingCodeValue
+        - Key: Tagging Version
+          Value: !Ref TagtaggingVersionValue
+      Timeout: 30
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue SG-OUT-ONLY-VPC1-ID
+        SubnetIds:
+          - !ImportValue SUBNET-PRIVATE-AZ1-VPC1-ID
+          - !ImportValue SUBNET-PRIVATE-AZ2-VPC1-ID
+      Code:
+        S3Bucket: !Ref DeploymentBucketName
+        S3Key: !Join 
+          - ''
+          - - functions/
+            - !Ref LambdaProcessorLoc
+      FunctionName: SofrProcessor
+      Handler: 'org.frb.ny.mods.ofr.lambda.handler.SofrFileHandler::handleRequest'
+      KmsKeyArn: !ImportValue LAMBDA-KMS-KEY-ARN
+      MemorySize: 1024
+      Environment:
+        Variables:
+          deployment_mode: !Ref DeploymentMode
+          enrichment_file_name: configuration/publish-enrichment-rules.json
+          sofr_artifacts_bucket_name: !Ref ArtifactsBucketName
+          sofr_intput_bucket_name: !Ref SOFRInputFilesBucketName
+          sofr_output_bucket_name: !Ref SOFROutputFilesBucketName
+          repo_archival_folder_name: !Ref ArchivalFolderName
+  OFRFileArrivedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Rule to send notification when a file arrives in the OFR input bucket"
+      EventPattern:
+        source:
+          - aws.s3
+        detail-type:
+          - AWS API Call via CloudTrail
+        detail:
+          eventSource:
+            - s3.amazonaws.com
+          eventName:
+            - PutObject
+          requestParameters:
+            bucketName:
+              - !Ref SOFRInputFilesBucketName
+      Name: devops-ofr-file-arrival-rule
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt
+            - ProcessorLambda
+            - Arn
+          Id: OFRFileArrived
+  EventsProcessorPerms:
+    Type: 'AWS::Lambda::Permission'
+    DependsOn: ProcessorLambda
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt 
+        - ProcessorLambda
+        - Arn
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt OFRFileArrivedRule.Arn
+  NewSubsLambda:
+    Type: 'AWS::Lambda::Function'
+    DependsOn:
+      - QueryRole
+    Properties:
+      Description: SOFR New Submissions Query Lambda Function
+      Role: !GetAtt 
+        - QueryRole
+        - Arn
+      Runtime: java8
+      Tags:
+        - Key: 2nd Level Support
+          Value: !Ref Tag2ndLevelSupportValue
+        - Key: Application System CI Name
+          Value: !Ref TagappCiNameValue
+        - Key: CI Environment
+          Value: !Ref TagCIEnvironmentValue
+        - Key: Created Date
+          Value: !Ref TagcreatedDateValue
+        - Key: Information Classification
+          Value: !Ref TagdataClassificationValue
+        - Key: Department Code
+          Value: !Ref TagDeptCodeValue
+        - Key: Line of Business
+          Value: !Ref TaglobValue
+        - Key: Accounting Code
+          Value: !Ref TagaccountingCodeValue
+        - Key: Tagging Version
+          Value: !Ref TagtaggingVersionValue
+      Timeout: 30
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue SG-OUT-ONLY-VPC1-ID
+        SubnetIds:
+          - !ImportValue SUBNET-PRIVATE-AZ1-VPC1-ID
+          - !ImportValue SUBNET-PRIVATE-AZ2-VPC1-ID
+      Code:
+        S3Bucket: !Ref DeploymentBucketName
+        S3Key: !Join 
+          - ''
+          - - functions/
+            - !Ref LambdaNewSubmissionsLoc
+      FunctionName: SofrNewSubmissions
+      Handler: 'org.frb.ny.mods.ofr.lambda.handler.SofrFileHandler::handleRequest'
+      KmsKeyArn: !ImportValue LAMBDA-KMS-KEY-ARN
+      MemorySize: 1024
+      Environment:
+        Variables:
+          deployment_mode: !Ref DeploymentMode
+          enrichment_file_name: configuration/publish-enrichment-rules.json
+          sofr_artifacts_bucket_name: !Ref ArtifactsBucketName
+          sofr_output_bucket_name: !Ref SOFROutputFilesBucketName
+          repo_archival_folder_name: !Ref ArchivalFolderName
+  SubIdLambda:
+    Type: 'AWS::Lambda::Function'
+    DependsOn:
+      - QueryRole
+    Properties:
+      Description: SOFR New Submissions Query Lambda Function
+      Role: !GetAtt 
+        - QueryRole
+        - Arn
+      Runtime: java8
+      Tags:
+        - Key: 2nd Level Support
+          Value: !Ref Tag2ndLevelSupportValue
+        - Key: Application System CI Name
+          Value: !Ref TagappCiNameValue
+        - Key: CI Environment
+          Value: !Ref TagCIEnvironmentValue
+        - Key: Created Date
+          Value: !Ref TagcreatedDateValue
+        - Key: Information Classification
+          Value: !Ref TagdataClassificationValue
+        - Key: Department Code
+          Value: !Ref TagDeptCodeValue
+        - Key: Line of Business
+          Value: !Ref TaglobValue
+        - Key: Accounting Code
+          Value: !Ref TagaccountingCodeValue
+        - Key: Tagging Version
+          Value: !Ref TagtaggingVersionValue
+      Timeout: 30
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue SG-OUT-ONLY-VPC1-ID
+        SubnetIds:
+          - !ImportValue SUBNET-PRIVATE-AZ1-VPC1-ID
+          - !ImportValue SUBNET-PRIVATE-AZ2-VPC1-ID
+      Code:
+        S3Bucket: !Ref DeploymentBucketName
+        S3Key: !Join 
+          - ''
+          - - functions/
+            - !Ref LambdaNewSubmissionsLoc
+      FunctionName: SofrSubmissionId
+      Handler: 'org.frb.ny.mods.ofr.lambda.handler.SofrFileHandler::handleRequest'
+      KmsKeyArn: !ImportValue LAMBDA-KMS-KEY-ARN
+      MemorySize: 1024
+      Environment:
+        Variables:
+          deployment_mode: !Ref DeploymentMode
+          enrichment_file_name: configuration/publish-enrichment-rules.json
+          sofr_artifacts_bucket_name: !Ref ArtifactsBucketName
+          sofr_output_bucket_name: !Ref SOFROutputFilesBucketName
+          repo_archival_folder_name: !Ref ArchivalFolderName
+  IntALB:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      IpAddressType: ipv4
+      LoadBalancerAttributes:
+        - Key: access_logs.s3.enabled
+          Value: 'false'
+        - Key: deletion_protection.enabled
+          Value: 'false'
+        - Key: idle_timeout.timeout_seconds
+          Value: '120'
+        - Key: routing.http.drop_invalid_header_fields.enabled
+          Value: 'false'
+      Name: SofrIntALB
+      Scheme: internal
+      SecurityGroups:
+        - !ImportValue SG-443-PRIVATE-VPC1-ID
+        - !ImportValue SG-443-DC-VPC1-ID
+      Subnets:
+        - !ImportValue SUBNET-PUBLIC-AZ1-VPC1-ID
+        - !ImportValue SUBNET-PUBLIC-AZ2-VPC1-ID
+      Tags:
+        - Key: 2nd Level Support
+          Value: !Ref Tag2ndLevelSupportValue
+        - Key: Application System CI Name
+          Value: !Ref TagappCiNameValue
+        - Key: CI Environment
+          Value: !Ref TagCIEnvironmentValue
+        - Key: Created Date
+          Value: !Ref TagcreatedDateValue
+        - Key: Information Classification
+          Value: !Ref TagdataClassificationValue
+        - Key: Department Code
+          Value: !Ref TagDeptCodeValue
+        - Key: Line of Business
+          Value: !Ref TaglobValue
+        - Key: Accounting Code
+          Value: !Ref TagaccountingCodeValue
+        - Key: Tagging Version
+          Value: !Ref TagtaggingVersionValue
+      Type: application
+  IntALBListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    DependsOn: IntALB
+    Properties:
+      Certificates:
+        - CertificateArn: !Ref IntCertArn
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            StatusCode: '404'
+            ContentType: text/plain
+      LoadBalancerArn: !Ref IntALB
+      Port: 443
+      Protocol: HTTPS
+  ALBNewSubsPerms:
+    Type: 'AWS::Lambda::Permission'
+    DependsOn: NewSubsLambda
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt 
+        - NewSubsLambda
+        - Arn
+      Principal: elasticloadbalancing.amazonaws.com
+  NewSubsTarget:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn:
+      - NewSubsLambda
+      - ALBNewSubsPerms
+    Properties:
+      TargetType: lambda
+      Name: NewSubmissionsTarget
+      Targets:
+        - Id: !GetAtt 
+            - NewSubsLambda
+            - Arn
+      Tags:
+        - Key: 2nd Level Support
+          Value: !Ref Tag2ndLevelSupportValue
+        - Key: Application System CI Name
+          Value: !Ref TagappCiNameValue
+        - Key: CI Environment
+          Value: !Ref TagCIEnvironmentValue
+        - Key: Created Date
+          Value: !Ref TagcreatedDateValue
+        - Key: Information Classification
+          Value: !Ref TagdataClassificationValue
+        - Key: Department Code
+          Value: !Ref TagDeptCodeValue
+        - Key: Line of Business
+          Value: !Ref TaglobValue
+        - Key: Accounting Code
+          Value: !Ref TagaccountingCodeValue
+        - Key: Tagging Version
+          Value: !Ref TagtaggingVersionValue
+  NewSubsRule:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    DependsOn:
+      - NewSubsTarget
+      - IntALBListener
+    Properties:
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref NewSubsTarget
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /newsubs
+        - Field: http-request-method
+          HttpRequestMethodConfig:
+            Values:
+              - GET
+              - HEAD
+      ListenerArn: !Ref IntALBListener
+      Priority: 100
+  ALBSubIdPerms:
+    Type: 'AWS::Lambda::Permission'
+    DependsOn: SubIdLambda
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt 
+        - SubIdLambda
+        - Arn
+      Principal: elasticloadbalancing.amazonaws.com
+  SubIdTarget:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    DependsOn:
+      - SubIdLambda
+      - ALBSubIdPerms
+    Properties:
+      TargetType: lambda
+      Name: SubmissionIdTarget
+      Targets:
+        - Id: !GetAtt 
+            - SubIdLambda
+            - Arn
+      Tags:
+        - Key: 2nd Level Support
+          Value: !Ref Tag2ndLevelSupportValue
+        - Key: Application System CI Name
+          Value: !Ref TagappCiNameValue
+        - Key: CI Environment
+          Value: !Ref TagCIEnvironmentValue
+        - Key: Created Date
+          Value: !Ref TagcreatedDateValue
+        - Key: Information Classification
+          Value: !Ref TagdataClassificationValue
+        - Key: Department Code
+          Value: !Ref TagDeptCodeValue
+        - Key: Line of Business
+          Value: !Ref TaglobValue
+        - Key: Accounting Code
+          Value: !Ref TagaccountingCodeValue
+        - Key: Tagging Version
+          Value: !Ref TagtaggingVersionValue
+  SubIdRule:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    DependsOn:
+      - SubIdTarget
+      - IntALBListener
+    Properties:
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref SubIdTarget
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /subid
+        - Field: http-request-method
+          HttpRequestMethodConfig:
+            Values:
+              - GET
+              - HEAD
+      ListenerArn: !Ref IntALBListener
+      Priority: 200
+  IntDNSAlias:
+    Type: 'AWS::Route53::RecordSet'
+    DependsOn: IntALB
+    Properties:
+      AliasTarget:
+        DNSName: !GetAtt 
+          - IntALB
+          - DNSName
+        EvaluateTargetHealth: true
+        HostedZoneId: !GetAtt 
+          - IntALB
+          - CanonicalHostedZoneID
+      HostedZoneId: !ImportValue 53-HOSTED-ZONE-ID
+      Name: !Join 
+        - ''
+        - - !Ref ApplicationName
+          - '-int.'
+          - !ImportValue 53-HOSTED-ZONE-NAME
+      Type: A
+Outputs:
+  NewSubsURL:
+    Description: URL for new submissions
+    Value: !Join 
+      - ''
+      - - 'https://'
+        - !Ref IntDNSAlias
+        - '/newsubs'
+    Export: 
+      Name: SOFR-NEWSUBS-ENDPOINT-ADDRESS

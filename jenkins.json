@@ -1,0 +1,55 @@
+{
+	"fileVersion": 1,
+	"projects": [{
+		"buildTool": "cloudformation",
+		"deploy" : {
+			"commands": [
+				"ls ./",
+				"mkdir spire-configs",
+				"mkdir env",
+				"mv deps/maven/external-read-files-*-assembly.tar spire-configs/",
+				"cd spire-configs/",
+				"tar -xvf external-read-files-*-assembly.tar",
+				"rm -rf *.tar META-INF*",
+				"cd ../env",
+				"aws sts assume-role --role-arn \"arn:aws:iam::429563846140:role/devops-sts-jenkins-deploy\" --role-session-name AWSCLI-Session > assume-role-output.txt",
+				"cat assume-role-output.txt | grep -i AccessKeyID | awk -F':' '{print $2}' | cut -d '\"' -f 2 | awk '{print \"export AWS_ACCESS_KEY_ID=\" $1}' > env.sh",
+				"cat assume-role-output.txt | grep -i SecretAccessKey | awk -F':' '{print $2}' | cut -d '\"' -f 2 | awk '{print \"export AWS_SECRET_ACCESS_KEY=\" $1}' >> env.sh",
+				"cat assume-role-output.txt | grep -i SessionToken | awk -F':' '{print $2}' | cut -d '\"' -f 2 | awk '{print \"export AWS_SESSION_TOKEN=\" $1}' >> env.sh",
+				"source ./env.sh",
+				"cd ..",
+				"aws s3 cp deps/maven/ s3://frbny-deployment-spire-dev-artifacts/functions/ --recursive --exclude \"*\" --include \"*.jar\"",			
+				"aws s3 cp spire-configs/ s3://frbny-spire-dev-main-artifacts/configuration/ --recursive --exclude \"*\" --include \"*.json\"",
+				"aws s3 cp spire-configs/ s3://frbny-spire-dev-beta-artifacts/configuration/ --recursive --exclude \"*\" --include \"*.json\"",
+				"aws s3 cp spire-configs/ s3://frbny-spire-dev-main-artifacts/templates/ --recursive --exclude \"*\" --include \"*.xml\"",
+				"aws s3 cp spire-configs/ s3://frbny-spire-dev-beta-artifacts/templates/ --recursive --exclude \"*\" --include \"*.xml\"",
+				"aws s3 cp spire-configs/templates/ s3://frbny-spire-dev-main-artifacts/templates/ --recursive --exclude \"*\" --include \"*.ftl*\"",
+				"aws s3 cp spire-configs/templates/ s3://frbny-spire-dev-beta-artifacts/templates/ --recursive --exclude \"*\" --include \"*.ftl*\"",
+				"aws s3 rm s3://frbny-spire-dev-main-artifacts/migration/admin-function-1.0.4.jar"
+				]
+		},
+		"dependencies" : [
+			"maven:org.frb.ny.markets.spire:publish-function:1.0.6",
+			"maven:org.frb.ny.markets.spire:external-read-function:1.0.10-SNAPSHOT",
+			"maven:org.frb.ny.markets.spire:internal-read-function:1.0.3",
+			"maven:org.frb.ny.markets.spire:treasury-price-function:1.0.4",
+			"maven:org.frb.ny.markets.spire:admin-function:1.0.5-SNAPSHOT",
+			"maven:org.frb.ny.markets.spire:external-read-files:2.0.1:tar:assembly"
+			],
+        "resources" : [
+                {
+                    "namespace": "org.frb.ny.tg.sm",
+                    "repoName" : "Spire-dev",
+                    "version"  : "1.0.4"
+                }
+         ],
+		"aws" : {
+			"id" : "429563846140",
+			"region" : "us-east-2",
+			"templateFile" : "spire-app.yml",
+			"stackName" : "SPIRE-APP",
+			"s3Bucket" : "frbny-deployment-spire-dev-artifacts",
+			"parameterFile" : "deps/resources/parameters.properties"
+        }
+	}]
+}

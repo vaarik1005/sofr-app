@@ -98,7 +98,7 @@ module "ProcessorLambda" {
   publish       = true
   memory_size   = 1024
   kms_key_arn   = data.aws_kms_key.lambda_kms_key.arn
-  lambda_role   = module.devops-processor-lambda-role.this_iam_role_name
+  lambda_role   = module.devops-processor-lambda-role.this_iam_role_name_arn
   timeout       = 30
 
   store_on_s3 = true
@@ -181,7 +181,7 @@ module "NewSubsLambda" {
   publish       = true
   memory_size   = 1024
   kms_key_arn   = data.aws_kms_key.lambda_kms_key.arn
-  lambda_role   = module.devops-query-lambdas-role.this_iam_role_name
+  lambda_role   = module.devops-query-lambdas-role.this_iam_role_name_arn
   timeout       = 30
 
   store_on_s3 = true
@@ -227,7 +227,7 @@ module "SubIdLambda" {
   publish       = true
   memory_size   = 1024
   kms_key_arn   = data.aws_kms_key.lambda_kms_key.arn
-  lambda_role   = module.devops-query-lambdas-role.this_iam_role_name
+  lambda_role   = module.devops-query-lambdas-role.this_iam_role_name_arn
   timeout       = 30
 
   store_on_s3 = true

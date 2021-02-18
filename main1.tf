@@ -91,7 +91,7 @@ module "devops-query-lambda-policy" {
 module "ProcessorLambda" {
   source = "./module/terraform-aws-lambda/"
 
-  function_name = "SofrProcessor-tf"
+  function_name = "devops-SofrProcessor-tf"
   description   = "SOFR File Processor Lambda Function"
   handler       = "org.frb.ny.mods.ofr.lambda.handler.SofrFileHandler::handleRequest"
   runtime       = "java8"
@@ -147,10 +147,10 @@ resource "aws_cloudwatch_event_rule" "OFRFileArrivedRule" {
         "AWS API Call via CloudTrail"
       ],
       detail = {
-        eventSource = "s3.amazonaws.com",
-        eventName   = "PutObject",
+        eventSource = ["s3.amazonaws.com"],
+        eventName   = ["PutObject"],
         requestParameters = {
-          bucketName = "${var.SOFRInputFilesBucketName}"
+          bucketName = ["${var.SOFRInputFilesBucketName}"]
         }
       }
     }
@@ -174,7 +174,7 @@ resource "aws_lambda_permission" "EventsProcessorPerms" {
 module "NewSubsLambda" {
   source = "./module/terraform-aws-lambda/"
 
-  function_name = "SofrNewSubmissions-tf"
+  function_name = "devops_SofrNewSubmissions_tf"
   description   = "SOFR New Submissions Query Lambda Function"
   handler       = "org.frb.ny.mods.ofr.lambda.handler.SofrFileHandler::handleRequest"
   runtime       = "java8"
@@ -199,6 +199,7 @@ module "NewSubsLambda" {
     "deployment_mode"            = var.DeploymentMode
     "enrichment_file_name"       = "configuration/publish-enrichment-rules.json"
     "sofr_artifacts_bucket_name" = var.ArtifactsBucketName
+    "sofr_input_bucket_name"     = var.SOFRInputFilesBucketName
     "sofr_output_bucket_name"    = var.SOFROutputFilesBucketName
     "repo_archival_folder_name"  = var.ArchivalFolderName
   }
@@ -219,7 +220,7 @@ module "NewSubsLambda" {
 module "SubIdLambda" {
   source = "./module/terraform-aws-lambda/"
 
-  function_name = "SofrSubmissionId-tf"
+  function_name = "devops-SofrSubmissionId-tf"
   description   = "SOFR New Submissions Query Lambda Function"
   handler       = "org.frb.ny.mods.ofr.lambda.handler.SofrFileHandler::handleRequest"
   runtime       = "java8"
@@ -244,6 +245,7 @@ module "SubIdLambda" {
     "deployment_mode"            = var.DeploymentMode
     "enrichment_file_name"       = "configuration/publish-enrichment-rules.json"
     "sofr_artifacts_bucket_name" = var.ArtifactsBucketName
+    "sofr_input_bucket_name"     = var.SOFRInputFilesBucketName
     "sofr_output_bucket_name"    = var.SOFROutputFilesBucketName
     "repo_archival_folder_name"  = var.ArchivalFolderName
   }
@@ -341,7 +343,7 @@ resource "aws_lb_listener_rule" "IntALBListener" {
 
   condition {
     path_pattern {
-      values = ["/newsubs-tf"]
+      values = ["/newsubs"]
     }
     http_request_method {
       values = ["GET", "HEAD"]
@@ -389,7 +391,7 @@ resource "aws_lb_listener_rule" "SubIdRule-tf" {
 
   condition {
     path_pattern {
-      values = ["/subid-tf"]
+      values = ["/subid"]
     }
     http_request_method {
       values = ["GET", "HEAD"]
@@ -404,7 +406,7 @@ resource "aws_route53_record" "IntDNSAlias" {
 
   alias {
     name                   = aws_lb.IntALB.dns_name
-    zone_id                = var.HostedZoneId
+    zone_id                = aws_lb.IntALB.zone_id
     evaluate_target_health = true
   }
 }
